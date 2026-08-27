@@ -5,8 +5,16 @@ import { api } from '../api';
 import { PriorityBadge } from '../components/PriorityBadge';
 
 const STATUS_OPTIONS = [
-  'New', 'Contacted', 'Qualified', 'Discovery Scheduled', 'Discovery Completed',
-  'Negotiation', 'Won', 'Lost', 'Nurture',
+  'New', 'Contacted', 'Responded', 'Qualified', 'Discovery Scheduled', 'Discovery Completed',
+  'Proposal Sent', 'Negotiation', 'Won', 'Lost', 'Nurture',
+];
+
+// Must match the database's `lead_source` enum exactly — free text here caused a
+// 500 error before, since Postgres rejects any value outside this fixed set.
+const SOURCE_OPTIONS = [
+  'Website', 'Website Assessment', 'WhatsApp', 'Instagram', 'LinkedIn', 'Referral',
+  'Community', 'Networking Event', 'Cold Email', 'Cold Outreach', 'Google',
+  'Existing Client', 'Other',
 ];
 
 const TIMELINE_OPTIONS = ['Immediately', 'Within 1 month', '1–3 months', '3–6 months', 'Exploring'];
@@ -42,6 +50,9 @@ function AddLeadForm({ onCreated, onCancel }) {
         estimated_project_value: form.estimated_project_value
           ? Number(form.estimated_project_value)
           : undefined,
+        // Enum columns (source, and status is always set here) reject an empty
+        // string outright — omit rather than send "", so the DB's own default applies.
+        source: form.source || undefined,
       };
       const { lead } = await api.createLead(payload);
       onCreated(lead);
@@ -89,10 +100,13 @@ function AddLeadForm({ onCreated, onCancel }) {
         </div>
         <div>
           <label className="block text-xs font-semibold text-ink-soft mb-1">Source</label>
-          <input
-            type="text" placeholder="e.g. Referral, LinkedIn" value={form.source} onChange={(e) => set('source', e.target.value)}
-            className="w-full border border-black/10 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue"
-          />
+          <select
+            value={form.source} onChange={(e) => set('source', e.target.value)}
+            className="w-full border border-black/10 rounded px-2 py-2 text-sm"
+          >
+            <option value="">— Not set —</option>
+            {SOURCE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
         </div>
         <div>
           <label className="block text-xs font-semibold text-ink-soft mb-1">What they need</label>
