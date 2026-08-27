@@ -2,10 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { query } from '../db/pool.js';
 import { asyncHandler, validationError } from '../middleware/errorHandler.js';
-
-// DEMO-STAGE FALLBACK — see the matching note in src/db/pool.js and src/middleware/auth.js.
-const DEMO_JWT_SECRET = 'c792225701376e1e2167f319f41d7323bdc0904cd756f0d4b29d45ffe74b1cbf5a76a717081c290908ad32745e4292cd';
-const JWT_SECRET = process.env.JWT_SECRET || DEMO_JWT_SECRET;
+import { JWT_SECRET } from '../config/jwt.js';
 
 // No public signup route exists on purpose — the single founder account is created via
 // scripts/seedUser.js. This keeps the private app genuinely single-operator, per the spec.

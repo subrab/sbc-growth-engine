@@ -1,9 +1,5 @@
 import jwt from 'jsonwebtoken';
-
-// DEMO-STAGE FALLBACK — see the matching note in src/db/pool.js. Move to a real
-// Vercel environment variable and rotate this value once that's set up.
-const DEMO_JWT_SECRET = 'c792225701376e1e2167f319f41d7323bdc0904cd756f0d4b29d45ffe74b1cbf5a76a717081c290908ad32745e4292cd';
-const JWT_SECRET = process.env.JWT_SECRET || DEMO_JWT_SECRET;
+import { JWT_SECRET } from '../config/jwt.js';
 
 export function requireAuth(req, res, next) {
   const header = req.headers.authorization || '';
