@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, Plus, X } from 'lucide-react';
+import { Pencil, Plus, Trash2, X } from 'lucide-react';
 import { api } from '../api';
 import { PriorityBadge } from '../components/PriorityBadge';
 
@@ -21,12 +21,31 @@ const TIMELINE_OPTIONS = ['Immediately', 'Within 1 month', '1–3 months', '3–
 
 const BUDGET_OPTIONS = ['Below ₹25K', '₹25K–₹50K', '₹50K–₹1L', '₹1L–₹3L', '₹3L+', 'Not sure'];
 
-function AddLeadForm({ onCreated, onCancel }) {
-  const [form, setForm] = useState({
-    name: '', email: '', phone: '', source: '', business_type: '',
-    main_problem: '', budget_range: '', timeline: '', estimated_project_value: '',
-    status: 'New',
-  });
+// Same list used on the Lead Detail page, so "next action" means the same thing everywhere.
+const NEXT_ACTION_OPTIONS = [
+  'Call client', 'Send WhatsApp', 'Schedule discovery', 'Prepare proposal', 'Follow up', 'Close', 'Nurture',
+];
+
+const BLANK_FORM = {
+  name: '', email: '', phone: '', source: '', business_type: '',
+  main_problem: '', budget_range: '', timeline: '', estimated_project_value: '',
+  status: 'New',
+};
+
+// Handles both creating a new lead and editing an existing one — pass `lead` to edit.
+function LeadForm({ lead, onSaved, onCancel }) {
+  const isEdit = Boolean(lead);
+  const [form, setForm] = useState(() =>
+    lead
+      ? {
+          name: lead.name || '', email: lead.email || '', phone: lead.phone || '',
+          source: lead.source || '', business_type: lead.business_type || '',
+          main_problem: lead.main_problem || '', budget_range: lead.budget_range || '',
+          timeline: lead.timeline || '', estimated_project_value: lead.estimated_project_value || '',
+          status: lead.status || 'New',
+        }
+      : BLANK_FORM
+  );
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -50,12 +69,14 @@ function AddLeadForm({ onCreated, onCancel }) {
         estimated_project_value: form.estimated_project_value
           ? Number(form.estimated_project_value)
           : undefined,
-        // Enum columns (source, and status is always set here) reject an empty
-        // string outright — omit rather than send "", so the DB's own default applies.
+        // Enum columns (source, status) reject an empty string outright — omit rather
+        // than send "", so the DB's own default applies (only matters on create).
         source: form.source || undefined,
       };
-      const { lead } = await api.createLead(payload);
-      onCreated(lead);
+      const result = isEdit
+        ? await api.updateLead(lead.id, payload)
+        : await api.createLead(payload);
+      onSaved(result.lead);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -66,7 +87,7 @@ function AddLeadForm({ onCreated, onCancel }) {
   return (
     <form onSubmit={handleSubmit} className="bg-white border border-black/10 rounded p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-display font-bold text-lg">Add a lead</h2>
+        <h2 className="font-display font-bold text-lg">{isEdit ? `Edit ${lead.name}` : 'Add a lead'}</h2>
         <button type="button" onClick={onCancel} className="text-ink-soft hover:text-ink" aria-label="Cancel">
           <X size={18} />
         </button>
@@ -167,7 +188,7 @@ function AddLeadForm({ onCreated, onCancel }) {
           type="submit" disabled={saving}
           className="bg-blue text-white text-sm font-semibold px-5 py-2 rounded hover:bg-blue-deep transition-colors disabled:opacity-60"
         >
-          {saving ? 'Saving…' : 'Add lead'}
+          {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Add lead'}
         </button>
         <button
           type="button" onClick={onCancel}
@@ -180,10 +201,45 @@ function AddLeadForm({ onCreated, onCancel }) {
   );
 }
 
+// The "Next action" cell is a live dropdown, not just a status label — picking a
+// value saves immediately, so "None set" is something you fix right here, in place.
+function NextActionCell({ lead, onChanged }) {
+  const [saving, setSaving] = useState(false);
+
+  async function handleChange(e) {
+    const next_action = e.target.value;
+    setSaving(true);
+    try {
+      const { lead: updated } = await api.updateLead(lead.id, { next_action });
+      onChanged(updated);
+    } catch {
+      // Swallow — the select just reverts to the lead's last known value on next render.
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <select
+      value={lead.next_action || ''}
+      disabled={saving}
+      onChange={handleChange}
+      className={`text-xs rounded px-2 py-1 border ${
+        lead.next_action ? 'border-black/10 text-ink' : 'border-red-200 text-red-600 font-medium bg-red-50'
+      }`}
+    >
+      <option value="">None set</option>
+      {NEXT_ACTION_OPTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
+    </select>
+  );
+}
+
 export function Leads() {
   const [leads, setLeads] = useState(null);
   const [error, setError] = useState('');
-  const [showForm, setShowForm] = useState(false);
+  const [formMode, setFormMode] = useState(null); // null | 'add' | { lead }
+  const [selected, setSelected] = useState(() => new Set());
+  const [deleting, setDeleting] = useState(false);
 
   function reload() {
     api.getLeads().then((d) => setLeads(d.leads)).catch((e) => setError(e.message));
@@ -193,29 +249,81 @@ export function Leads() {
     reload();
   }, []);
 
-  function handleCreated() {
-    setShowForm(false);
+  function handleSaved() {
+    setFormMode(null);
     reload();
+  }
+
+  function handleLeadUpdatedInline(updated) {
+    setLeads((prev) => prev.map((l) => (l.id === updated.id ? { ...l, ...updated } : l)));
+  }
+
+  function toggleSelected(id) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelected((prev) => (prev.size === leads.length ? new Set() : new Set(leads.map((l) => l.id))));
+  }
+
+  async function handleDeleteSelected() {
+    if (selected.size === 0) return;
+    const label = selected.size === 1 ? 'this lead' : `these ${selected.size} leads`;
+    if (!window.confirm(`Delete ${label}? This can't be undone from here.`)) return;
+    setDeleting(true);
+    try {
+      await Promise.all([...selected].map((id) => api.deleteLead(id)));
+      setSelected(new Set());
+      reload();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   if (error) return <div className="p-8 text-red-700">{error}</div>;
   if (!leads) return <div className="p-8 text-ink-soft">Loading…</div>;
 
+  const editingLead = formMode && formMode !== 'add' ? formMode.lead : null;
+
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-display font-bold text-2xl">Leads</h1>
-        {!showForm && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 bg-blue text-white text-sm font-semibold px-4 py-2 rounded hover:bg-blue-deep transition-colors"
-          >
-            <Plus size={16} /> Add lead
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {selected.size > 0 && (
+            <button
+              onClick={handleDeleteSelected}
+              disabled={deleting}
+              className="flex items-center gap-2 bg-red-600 text-white text-sm font-semibold px-4 py-2 rounded hover:bg-red-700 transition-colors disabled:opacity-60"
+            >
+              <Trash2 size={16} /> {deleting ? 'Deleting…' : `Delete (${selected.size})`}
+            </button>
+          )}
+          {!formMode && (
+            <button
+              onClick={() => setFormMode('add')}
+              className="flex items-center gap-2 bg-blue text-white text-sm font-semibold px-4 py-2 rounded hover:bg-blue-deep transition-colors"
+            >
+              <Plus size={16} /> Add lead
+            </button>
+          )}
+        </div>
       </div>
 
-      {showForm && <AddLeadForm onCreated={handleCreated} onCancel={() => setShowForm(false)} />}
+      {formMode && (
+        <LeadForm
+          lead={editingLead}
+          onSaved={handleSaved}
+          onCancel={() => setFormMode(null)}
+        />
+      )}
 
       {leads.length === 0 ? (
         <div className="bg-white border border-black/10 rounded p-8 text-center max-w-md">
@@ -229,16 +337,33 @@ export function Leads() {
           <table className="w-full text-sm">
             <thead className="bg-paper-2 text-left text-xs uppercase tracking-wide text-ink-soft">
               <tr>
+                <th className="px-4 py-3 w-8">
+                  <input
+                    type="checkbox"
+                    checked={selected.size === leads.length}
+                    onChange={toggleSelectAll}
+                    aria-label="Select all leads"
+                  />
+                </th>
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Source</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Priority</th>
                 <th className="px-4 py-3">Next action</th>
+                <th className="px-4 py-3 w-10"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black/5">
               {leads.map((lead) => (
                 <tr key={lead.id} className="hover:bg-paper-2 transition-colors">
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(lead.id)}
+                      onChange={() => toggleSelected(lead.id)}
+                      aria-label={`Select ${lead.name}`}
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <Link to={`/app/leads/${lead.id}`} className="font-medium hover:text-blue">
                       {lead.name}
@@ -251,13 +376,16 @@ export function Leads() {
                   </td>
                   <td className="px-4 py-3"><PriorityBadge priority={lead.priority} /></td>
                   <td className="px-4 py-3">
-                    {lead.missing_next_action ? (
-                      <span className="flex items-center gap-1 text-xs text-red-600 font-medium">
-                        <AlertCircle size={14} /> None set
-                      </span>
-                    ) : (
-                      <span className="text-ink-soft text-xs">{lead.next_action}</span>
-                    )}
+                    <NextActionCell lead={lead} onChanged={handleLeadUpdatedInline} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => setFormMode({ lead })}
+                      className="text-ink-soft hover:text-blue"
+                      aria-label={`Edit ${lead.name}`}
+                    >
+                      <Pencil size={16} />
+                    </button>
                   </td>
                 </tr>
               ))}
