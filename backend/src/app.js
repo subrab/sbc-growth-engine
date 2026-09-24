@@ -8,6 +8,7 @@ import dashboardRoutes from './routes/dashboard.js';
 import activitiesRoutes from './routes/activities.js';
 import tasksRoutes from './routes/tasks.js';
 import publicRoutes from './routes/public.js';
+import reviewsRoutes from './routes/reviews.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
@@ -25,6 +26,7 @@ app.use('/api/leads', leadsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/activities', activitiesRoutes);
 app.use('/api/tasks', tasksRoutes);
+app.use('/api/reviews', reviewsRoutes);
 app.use('/api/public', publicRoutes);
 
 app.use(notFoundHandler);

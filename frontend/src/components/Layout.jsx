@@ -1,15 +1,31 @@
-import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Users, Kanban, LogOut } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { LayoutDashboard, Users, Kanban, Star, LogOut } from 'lucide-react';
+import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 
 const navItems = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/app/leads', label: 'Leads', icon: Users },
   { to: '/app/pipeline', label: 'Pipeline', icon: Kanban },
+  { to: '/app/reviews', label: 'Reviews', icon: Star, badgeKey: 'pendingReviews' },
 ];
 
 export function Layout() {
   const { user, logout } = useAuth();
+  const location = useLocation();
+  const [badges, setBadges] = useState({ pendingReviews: 0 });
+
+  // Shows how many reviews are waiting for approval next to "Reviews" in the sidebar.
+  useEffect(() => {
+    const refresh = () =>
+      api.getReviews('Pending')
+        .then((d) => setBadges({ pendingReviews: d.counts?.Pending || 0 }))
+        .catch(() => {});
+    refresh();
+    window.addEventListener('reviews-changed', refresh);
+    return () => window.removeEventListener('reviews-changed', refresh);
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen flex bg-paper">
@@ -19,7 +35,7 @@ export function Layout() {
           Growth Engine
         </div>
         <nav className="flex-1 px-3 space-y-1">
-          {navItems.map(({ to, label, icon: Icon, end }) => (
+          {navItems.map(({ to, label, icon: Icon, end, badgeKey }) => (
             <NavLink
               key={to}
               to={to}
@@ -32,6 +48,11 @@ export function Layout() {
             >
               <Icon size={18} />
               {label}
+              {badgeKey && badges[badgeKey] > 0 && (
+                <span className="ml-auto bg-amber text-navy text-xs font-mono font-semibold rounded-full px-2 py-0.5">
+                  {badges[badgeKey]}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>

@@ -169,3 +169,20 @@ CREATE TRIGGER trg_leads_updated_at BEFORE UPDATE ON leads
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER trg_tasks_updated_at BEFORE UPDATE ON tasks
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- ---------- reviews (added in Phase 1.1 — see db/migrations/002_reviews.sql) ----------
+CREATE TABLE IF NOT EXISTS reviews (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name         TEXT NOT NULL,
+    company      TEXT,
+    role         TEXT,
+    email        TEXT,
+    rating       SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    review_text  TEXT NOT NULL,
+    status       TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending','Approved','Rejected')),
+    reviewed_at  TIMESTAMPTZ,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_reviews_status_created ON reviews (status, created_at DESC);

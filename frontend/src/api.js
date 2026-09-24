@@ -43,6 +43,10 @@ export const api = {
   getTasksDueToday: () => request('/tasks?due=today'),
   updateTask: (id, payload) => request(`/tasks/${id}`, { method: 'PATCH', body: payload }),
 
+  getReviews: (status) => request(`/reviews${status ? `?status=${encodeURIComponent(status)}` : ''}`),
+  updateReview: (id, payload) => request(`/reviews/${id}`, { method: 'PATCH', body: payload }),
+  deleteReview: (id) => request(`/reviews/${id}`, { method: 'DELETE' }),
+
   // Public, unauthenticated — used by the assessment page, not the admin dashboard.
   submitAssessment: (payload) => request('/public/assessment', { method: 'POST', body: payload, auth: false }),
 };

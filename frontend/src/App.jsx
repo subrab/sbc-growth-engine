@@ -11,6 +11,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m
 const Leads = lazy(() => import('./pages/Leads').then(m => ({ default: m.Leads })));
 const LeadDetail = lazy(() => import('./pages/LeadDetail').then(m => ({ default: m.LeadDetail })));
 const Pipeline = lazy(() => import('./pages/Pipeline').then(m => ({ default: m.Pipeline })));
+const Reviews = lazy(() => import('./pages/Reviews').then(m => ({ default: m.Reviews })));
 const Assessment = lazy(() => import('./pages/Assessment').then(m => ({ default: m.Assessment })));
 
 function PageLoading() {
@@ -41,6 +42,7 @@ export default function App() {
             <Route path="leads" element={<Leads />} />
             <Route path="leads/:id" element={<LeadDetail />} />
             <Route path="pipeline" element={<Pipeline />} />
+            <Route path="reviews" element={<Reviews />} />
           </Route>
 
           <Route path="/" element={<Navigate to="/app" replace />} />
