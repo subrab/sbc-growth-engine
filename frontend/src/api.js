@@ -47,6 +47,8 @@ export const api = {
   updateReview: (id, payload) => request(`/reviews/${id}`, { method: 'PATCH', body: payload }),
   deleteReview: (id) => request(`/reviews/${id}`, { method: 'DELETE' }),
 
+  getInsights: (site, days) => request(`/insights?site=${encodeURIComponent(site)}&days=${days}`),
+
   // Public, unauthenticated — used by the assessment page, not the admin dashboard.
   submitAssessment: (payload) => request('/public/assessment', { method: 'POST', body: payload, auth: false }),
 };

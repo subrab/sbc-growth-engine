@@ -9,9 +9,14 @@ import activitiesRoutes from './routes/activities.js';
 import tasksRoutes from './routes/tasks.js';
 import publicRoutes from './routes/public.js';
 import reviewsRoutes from './routes/reviews.js';
+import insightsRoutes from './routes/insights.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
+
+// Vercel sits in front of the API as a proxy; trust its X-Forwarded-For so rate limits
+// apply per visitor rather than to everyone sharing the proxy's address.
+app.set('trust proxy', 1);
 
 // Demo-stage CORS: allow any origin. Tighten to an explicit ALLOWED_ORIGINS list
 // (see .env.example) once this moves beyond a live demo with a single admin user.
@@ -27,6 +32,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/activities', activitiesRoutes);
 app.use('/api/tasks', tasksRoutes);
 app.use('/api/reviews', reviewsRoutes);
+app.use('/api/insights', insightsRoutes);
 app.use('/api/public', publicRoutes);
 
 app.use(notFoundHandler);
