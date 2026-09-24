@@ -47,13 +47,14 @@ export const submitAssessment = asyncHandler(async (req, res) => {
     timeline, budget_range, problem_description,
   } = req.body;
 
-  if (!name || !email) {
-    throw validationError('Please share your name and email so we can follow up.');
+  // Email OR phone is enough — many visitors prefer to be contacted on WhatsApp.
+  if (!name || (!email && !phone)) {
+    throw validationError('Please share your name and a phone number or email so we can follow up.');
   }
 
   const leadPayload = {
     name,
-    email,
+    email: email || null,
     phone: phone || null,
     website: website || null,
     industry: industry || null,

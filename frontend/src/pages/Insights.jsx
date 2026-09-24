@@ -17,6 +17,10 @@ const CLICK_NAMES = {
   whatsapp_form: 'Continue on WhatsApp', email_link: 'Email link', leave_review: 'Leave a Review',
   exp_talk: 'Tech stack: Talk to us', industry_note: "Industries: Don't see yours?",
   review_submitted: 'Submitted a review',
+  assessment_open_hero: 'Readiness check: opened from hero', assessment_open_industries: 'Readiness check: opened from Industries',
+  assessment_open_contact: 'Readiness check: opened from Contact', assessment_completed: 'Readiness check: finished quiz',
+  assessment_whatsapp: 'Readiness check: continued on WhatsApp',
+  exit_offer_shown: 'Exit offer: shown', exit_offer_accept: 'Exit offer: accepted', exit_offer_dismiss: 'Exit offer: dismissed',
 };
 const clickName = (n) => (n?.startsWith('slide:') ? `Industry slide: ${n.slice(6)}` : CLICK_NAMES[n] || n);
 
