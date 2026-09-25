@@ -52,8 +52,19 @@ function deviceOf(ua = '') {
   return 'Desktop';
 }
 
+// Crawlers, uptime monitors and the link-preview fetchers social apps run when a link is
+// shared (Facebook, WhatsApp, LinkedIn, X, Telegram, Slack, ...). None of these are visitors.
+// Careful: in-app browsers of real people ("[LinkedInApp]", "FBAN", "Instagram") must NOT match.
+const BOT_UA = new RegExp([
+  'bot', 'crawl', 'spider', 'slurp', 'preview', 'headless', 'lighthouse', 'pingdom', 'monitor',
+  'facebookexternalhit', 'facebot', 'meta-externalagent', 'meta-externalfetcher', '^whatsapp',
+  'slack-imgproxy', 'skypeuri', 'embedly', 'pinterest/',
+  'google-inspectiontool', 'googleother', 'bingpreview', 'yandex', 'baidu', 'petal', 'ahrefs',
+  'semrush', 'mj12', 'dataprovider', 'python-requests', 'python-urllib', 'curl', 'wget', 'axios',
+  'node-fetch', 'go-http-client', 'java/', 'okhttp', 'scrapy', 'phantomjs', 'puppeteer', 'playwright',
+].join('|'), 'i');
 function isBot(ua = '') {
-  return !ua || /bot|crawl|spider|slurp|preview|headless|lighthouse|pingdom|monitor/i.test(ua);
+  return !ua || BOT_UA.test(ua);
 }
 
 // Turns a referrer + UTM tag into a friendly traffic source name.
