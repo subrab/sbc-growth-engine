@@ -1,6 +1,43 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Check, Clock } from 'lucide-react';
 import { api } from '../api';
+
+// Dates are compared as plain calendar days in India time.
+const istToday = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+const dayNum = (ymd) => { const [y, m, d] = ymd.slice(0, 10).split('-').map(Number); return Date.UTC(y, m - 1, d) / 86400000; };
+const prettyDay = (ymd) => new Date(ymd.slice(0, 10) + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+const tomorrowIst = () => { const d = new Date(dayNum(istToday()) * 86400000 + 86400000); return d.toISOString().slice(0, 10); };
+
+function TaskRow({ task, onChange }) {
+  const [busy, setBusy] = useState(false);
+  const late = dayNum(istToday()) - dayNum(task.due_date);
+  async function update(payload) {
+    setBusy(true);
+    try { await api.updateTask(task.id, payload); onChange(); } finally { setBusy(false); }
+  }
+  return (
+    <div className="flex items-center justify-between gap-4 px-5 py-3 hover:bg-paper-2 transition-colors">
+      <Link to={`/app/leads/${task.lead_id}`} className="min-w-0 flex-1">
+        <div className="font-medium text-sm">{task.lead_name}</div>
+        <div className="text-ink-soft text-xs">{task.reason}</div>
+      </Link>
+      <div className={`text-xs font-mono shrink-0 ${late > 0 ? 'text-red-700' : 'text-ink-soft'}`}>
+        {late > 0 ? `${prettyDay(task.due_date)} · ${late} day${late === 1 ? '' : 's'} overdue` : 'Due today'}
+      </div>
+      <div className="flex gap-1.5 shrink-0">
+        <button disabled={busy} onClick={() => update({ status: 'done' })} title="Mark as done"
+          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50">
+          <Check size={13} /> Done
+        </button>
+        <button disabled={busy} onClick={() => update({ due_date: tomorrowIst() })} title="Move to tomorrow"
+          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium border border-black/10 text-ink-soft hover:text-ink hover:bg-white disabled:opacity-50">
+          <Clock size={13} /> Tomorrow
+        </button>
+      </div>
+    </div>
+  );
+}
 
 const STATUS_ORDER = [
   'New', 'Contacted', 'Qualified', 'Discovery Scheduled', 'Discovery Completed',
@@ -15,9 +52,8 @@ export function Dashboard() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    api.getDashboard().then(setData).catch((e) => setError(e.message));
-  }, []);
+  const load = () => api.getDashboard().then(setData).catch((e) => setError(e.message));
+  useEffect(() => { load(); }, []);
 
   if (error) return <div className="p-8 text-red-700">{error}</div>;
   if (!data) return <div className="p-8 text-ink-soft">Loading…</div>;
@@ -28,30 +64,43 @@ export function Dashboard() {
     <div className="p-8 max-w-5xl">
       <h1 className="font-display font-bold text-2xl mb-8">Dashboard</h1>
 
-      {/* TODAY */}
+      {/* TODAY: follow-ups due today, with anything overdue listed first and clearly marked */}
       <section className="mb-10">
         <h2 className="font-mono text-xs uppercase tracking-wide text-blue mb-3">Today</h2>
-        {today.follow_ups_due.length === 0 ? (
-          <div className="bg-white border border-black/10 rounded p-6 text-ink-soft text-sm">
-            No follow-ups due today. Nothing urgent — good moment to reach out to a lead proactively.
-          </div>
-        ) : (
-          <div className="bg-white border border-black/10 rounded divide-y divide-black/5">
-            {today.follow_ups_due.map((task) => (
-              <Link
-                key={task.id}
-                to={`/app/leads/${task.lead_id}`}
-                className="flex items-center justify-between px-5 py-3 hover:bg-paper-2 transition-colors"
-              >
+        {(() => {
+          const todayNum = dayNum(istToday());
+          const overdue = today.follow_ups_due.filter((t) => dayNum(t.due_date) < todayNum);
+          const dueToday = today.follow_ups_due.filter((t) => dayNum(t.due_date) >= todayNum);
+          if (!overdue.length && !dueToday.length) {
+            return (
+              <div className="bg-white border border-black/10 rounded p-6 text-ink-soft text-sm">
+                No follow-ups due today. Nothing urgent — good moment to reach out to a lead proactively.
+              </div>
+            );
+          }
+          return (
+            <div className="space-y-4">
+              {overdue.length > 0 && (
                 <div>
-                  <div className="font-medium text-sm">{task.lead_name}</div>
-                  <div className="text-ink-soft text-xs">{task.reason}</div>
+                  <div className="text-xs font-semibold text-red-700 mb-2">Overdue · {overdue.length}</div>
+                  <div className="bg-white border border-red-200 rounded divide-y divide-black/5">
+                    {overdue.map((task) => <TaskRow key={task.id} task={task} onChange={load} />)}
+                  </div>
                 </div>
-                <div className="text-xs font-mono text-ink-soft">{task.due_date}</div>
-              </Link>
-            ))}
-          </div>
-        )}
+              )}
+              <div>
+                <div className="text-xs font-semibold text-ink-soft mb-2">Due today · {dueToday.length}</div>
+                {dueToday.length ? (
+                  <div className="bg-white border border-black/10 rounded divide-y divide-black/5">
+                    {dueToday.map((task) => <TaskRow key={task.id} task={task} onChange={load} />)}
+                  </div>
+                ) : (
+                  <div className="bg-white border border-black/10 rounded p-4 text-ink-soft text-sm">Nothing new due today.</div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </section>
 
       {/* PIPELINE */}

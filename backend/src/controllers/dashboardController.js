@@ -16,9 +16,12 @@ export const getDashboard = asyncHandler(async (req, res) => {
     { rows: wonRows },
   ] = await Promise.all([
     query(
-      `SELECT t.*, l.name AS lead_name, l.company_id
+      // Pending follow-ups due today or earlier (overdue), judged by the date in India,
+      // not the database server's UTC date. due_date is returned as plain 'YYYY-MM-DD'.
+      `SELECT t.*, t.due_date::text AS due_date, l.name AS lead_name, l.company_id
        FROM tasks t JOIN leads l ON l.id = t.lead_id
-       WHERE t.status = 'pending' AND t.due_date <= CURRENT_DATE
+       WHERE t.status = 'pending' AND l.deleted_at IS NULL
+         AND t.due_date <= (now() AT TIME ZONE 'Asia/Kolkata')::date
        ORDER BY t.due_date ASC`
     ),
     query(
