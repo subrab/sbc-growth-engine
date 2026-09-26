@@ -47,6 +47,11 @@ export const api = {
   updateReview: (id, payload) => request(`/reviews/${id}`, { method: 'PATCH', body: payload }),
   deleteReview: (id) => request(`/reviews/${id}`, { method: 'DELETE' }),
 
+  getSettings: () => request('/settings'),
+  saveSettings: (payload) => request('/settings', { method: 'PUT', body: payload }),
+  getReviewRequests: () => request('/reviews/requests'),
+  reviewRequestSent: (id, channel) => request(`/leads/${id}/review-request/sent`, { method: 'POST', body: { channel } }),
+  reviewRequestReviewed: (id) => request(`/leads/${id}/review-request/reviewed`, { method: 'POST', body: {} }),
   getInsights: (site, days) => request(`/insights?site=${encodeURIComponent(site)}&days=${days}`),
 
   // Public, unauthenticated — used by the assessment page, not the admin dashboard.

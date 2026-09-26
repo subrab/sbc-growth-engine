@@ -1,6 +1,7 @@
 import { query } from '../db/pool.js';
 import { asyncHandler, validationError } from '../middleware/errorHandler.js';
 import { scoreLead } from '../utils/scoring.js';
+import { scheduleReviewRequest } from '../services/reviewRequests.js';
 
 const LEAD_FIELDS = [
   'company_id', 'contact_id', 'name', 'email', 'phone', 'whatsapp', 'website', 'location',
@@ -152,6 +153,8 @@ export const updateLead = asyncHandler(async (req, res) => {
 
   if (fields.status && fields.status !== existing.status) {
     await logActivity(id, 'Status Change', `${existing.status} → ${fields.status}`);
+    // Winning a client schedules a Google review request (never blocks the status update).
+    if (fields.status === 'Won') await scheduleReviewRequest(id).catch((e) => console.error('review scheduling failed', e));
   }
 
   await recordScore(id, lead);

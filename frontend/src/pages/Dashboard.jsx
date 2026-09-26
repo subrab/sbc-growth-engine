@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, Clock } from 'lucide-react';
 import { api } from '../api';
+import { ReviewRequestActions } from '../components/ReviewRequestActions';
 
 // Dates are compared as plain calendar days in India time.
 const istToday = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
@@ -25,6 +26,17 @@ function TaskRow({ task, onChange }) {
       <div className={`text-xs font-mono shrink-0 ${late > 0 ? 'text-red-700' : 'text-ink-soft'}`}>
         {late > 0 ? `${prettyDay(task.due_date)} · ${late} day${late === 1 ? '' : 's'} overdue` : 'Due today'}
       </div>
+      {task.kind === 'review_request' || task.kind === 'review_reminder' ? (
+        <div className="flex gap-1.5 shrink-0 items-center">
+          <ReviewRequestActions compact onDone={onChange}
+            stage={task.kind === 'review_reminder' ? 'reminder' : 'request'}
+            lead={{ id: task.lead_id, name: task.lead_name, phone: task.lead_phone, email: task.lead_email }} />
+          <button disabled={busy} onClick={() => update({ due_date: tomorrowIst() })} title="Move to tomorrow"
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium border border-black/10 text-ink-soft hover:text-ink hover:bg-white disabled:opacity-50">
+            <Clock size={13} /> Tomorrow
+          </button>
+        </div>
+      ) : (
       <div className="flex gap-1.5 shrink-0">
         <button disabled={busy} onClick={() => update({ status: 'done' })} title="Mark as done"
           className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50">
@@ -35,6 +47,7 @@ function TaskRow({ task, onChange }) {
           <Clock size={13} /> Tomorrow
         </button>
       </div>
+      )}
     </div>
   );
 }

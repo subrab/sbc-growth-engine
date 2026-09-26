@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Check, X, RotateCcw, Trash2, Star } from 'lucide-react';
 import { api } from '../api';
+import { ReviewRequestsPanel } from '../components/ReviewRequestsPanel';
 
 const TABS = ['Pending', 'Approved', 'Rejected'];
 
@@ -72,6 +73,8 @@ export function Reviews() {
   return (
     <div className="p-8 max-w-4xl">
       <h1 className="font-display font-bold text-2xl mb-2">Reviews</h1>
+      <div className="mt-6"><ReviewRequestsPanel /></div>
+      <h2 className="font-display font-semibold text-lg mb-2">Website reviews</h2>
       <p className="text-ink-soft text-sm mb-6">
         Reviews submitted on sbclabs.tech land here as <b>Pending</b>. Only <b>Approved</b> reviews appear on the website.
       </p>

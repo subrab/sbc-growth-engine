@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api';
 import { PriorityBadge } from '../components/PriorityBadge';
+import { ReviewRequestActions } from '../components/ReviewRequestActions';
 
 const STATUS_OPTIONS = [
   'New', 'Contacted', 'Responded', 'Qualified', 'Discovery Scheduled', 'Discovery Completed',
@@ -123,6 +124,22 @@ export function LeadDetail() {
           <div className="text-sm">{latest_score ? `${latest_score.score} / 100` : '—'}</div>
         </div>
       </div>
+
+      {lead.status === 'Won' && (
+        <div className="bg-white border border-black/10 rounded p-4 mb-8 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="font-mono text-xs uppercase tracking-wide text-blue mb-1">Google review</div>
+            <div className="text-sm">
+              {lead.review_status === 'reviewed' ? 'Reviewed. Remember to reply to their review on Google.'
+                : lead.review_status === 'asked' ? `Asked on ${new Date(lead.review_asked_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}. A reminder is scheduled a week later.`
+                : 'Not asked yet. A request is scheduled automatically, or ask now.'}
+            </div>
+          </div>
+          {lead.review_status !== 'reviewed' && (
+            <ReviewRequestActions lead={lead} stage={lead.review_status === 'asked' ? 'reminder' : 'request'} onDone={load} />
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-8 mb-8">
         <section className="space-y-4">

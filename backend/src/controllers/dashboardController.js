@@ -1,5 +1,6 @@
 import { query } from '../db/pool.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
+import { ensureReviewRequests } from '../services/reviewRequests.js';
 
 const PIPELINE_STATUSES = [
   'New', 'Contacted', 'Qualified', 'Discovery Scheduled', 'Discovery Completed',
@@ -7,6 +8,7 @@ const PIPELINE_STATUSES = [
 ];
 
 export const getDashboard = asyncHandler(async (req, res) => {
+  await ensureReviewRequests();
   const [
     { rows: todayTasks },
     { rows: statusCounts },
@@ -18,7 +20,8 @@ export const getDashboard = asyncHandler(async (req, res) => {
     query(
       // Pending follow-ups due today or earlier (overdue), judged by the date in India,
       // not the database server's UTC date. due_date is returned as plain 'YYYY-MM-DD'.
-      `SELECT t.*, t.due_date::text AS due_date, l.name AS lead_name, l.company_id
+      `SELECT t.*, t.due_date::text AS due_date, l.name AS lead_name, l.company_id,
+              l.phone AS lead_phone, l.email AS lead_email, l.review_status
        FROM tasks t JOIN leads l ON l.id = t.lead_id
        WHERE t.status = 'pending' AND l.deleted_at IS NULL
          AND t.due_date <= (now() AT TIME ZONE 'Asia/Kolkata')::date
