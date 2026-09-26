@@ -2,6 +2,7 @@ import { query } from '../db/pool.js';
 import { asyncHandler, validationError } from '../middleware/errorHandler.js';
 import { scoreLead } from '../utils/scoring.js';
 import { recordScore, logActivity } from './leadsController.js';
+import { notifyNewLead } from '../services/whatsappNotify.js';
 
 const DEFAULT_FOLLOW_UP_DAYS = 2;
 
@@ -32,6 +33,7 @@ export const createPublicLead = asyncHandler(async (req, res) => {
   await recordScore(lead.id, lead);
   await logActivity(lead.id, 'Note', 'Lead submitted via public "Start a Project" form.');
   await createFollowUpTask(lead.id, 'Respond to new website inquiry');
+  await notifyNewLead(lead); // WhatsApp alert to owner (never throws)
 
   res.status(201).json({
     message: "Thanks — your message is in. We'll review it and get back to you.",
@@ -88,6 +90,7 @@ export const submitAssessment = asyncHandler(async (req, res) => {
   await recordScore(lead.id, lead);
   await logActivity(lead.id, 'Note', 'Business Assessment submitted.');
   await createFollowUpTask(lead.id, 'Review Business Assessment submission');
+  await notifyNewLead(lead); // WhatsApp alert to owner (never throws)
 
   res.status(201).json({
     message: "Thanks for sharing your business challenge. We'll review your requirements and get back to you.",
