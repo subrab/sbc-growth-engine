@@ -199,8 +199,12 @@ export const getInsights = asyncHandler(async (req, res) => {
               COUNT(*) FILTER (WHERE visited AND submitted)::int AS form_submitted
          FROM s`, p),
     query(
-      `SELECT source AS label, COUNT(DISTINCT session_id)::int AS n FROM analytics_events
-        WHERE ${RANGE} AND event_type = 'pageview' GROUP BY source ORDER BY n DESC LIMIT 10`, p),
+      // Each visit is credited to how it started (its first page view), so moving between
+      // pages of a single-page app doesn't also count as a "Direct" visit.
+      `SELECT source AS label, COUNT(*)::int AS n FROM (
+         SELECT DISTINCT ON (session_id) session_id, source FROM analytics_events
+          WHERE ${RANGE} AND event_type = 'pageview' ORDER BY session_id, created_at, id) first_views
+        GROUP BY source ORDER BY n DESC LIMIT 10`, p),
     query(
       `SELECT device AS label, COUNT(DISTINCT session_id)::int AS n FROM analytics_events
         WHERE ${RANGE} AND event_type = 'pageview' GROUP BY device ORDER BY n DESC`, p),
