@@ -11,6 +11,8 @@ import publicRoutes from './routes/public.js';
 import reviewsRoutes from './routes/reviews.js';
 import insightsRoutes from './routes/insights.js';
 import settingsRoutes from './routes/settings.js';
+import clientCareRoutes from './routes/clientCare.js';
+import { cronClientCare } from './controllers/clientCareController.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
@@ -35,6 +37,8 @@ app.use('/api/tasks', tasksRoutes);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/insights', insightsRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/care', clientCareRoutes);
+app.get('/api/cron/client-care', cronClientCare);
 app.use('/api/public', publicRoutes);
 
 app.use(notFoundHandler);

@@ -71,14 +71,21 @@ async function sendViaMeta(text) {
   if (!res.ok) throw new Error(`Meta WA HTTP ${res.status}: ${await res.text()}`);
 }
 
-export async function notifyNewLead(lead) {
+// Sends any text to the owner's WhatsApp with the configured provider. Never throws;
+// returns true when the message was handed to the provider.
+export async function notifyOwner(text) {
   const provider = (process.env.WHATSAPP_PROVIDER || 'callmebot').toLowerCase();
-  if (provider === 'off') return;
+  if (provider === 'off') return false;
   try {
-    const text = buildLeadMessage(lead);
     if (provider === 'meta') await sendViaMeta(text);
     else await sendViaCallMeBot(text);
+    return true;
   } catch (err) {
     console.error('[whatsappNotify] failed:', err.message);
+    return false;
   }
+}
+
+export async function notifyNewLead(lead) {
+  await notifyOwner(buildLeadMessage(lead));
 }

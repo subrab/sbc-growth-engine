@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Kanban, Star, BarChart3, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Kanban, Star, BarChart3, ShieldCheck, LogOut } from 'lucide-react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 
@@ -10,22 +10,29 @@ const navItems = [
   { to: '/app/pipeline', label: 'Pipeline', icon: Kanban },
   { to: '/app/insights', label: 'Insights', icon: BarChart3 },
   { to: '/app/reviews', label: 'Reviews', icon: Star, badgeKey: 'pendingReviews' },
+  { to: '/app/care', label: 'Client Care', icon: ShieldCheck, badgeKey: 'careAttention', alert: true },
 ];
 
 export function Layout() {
   const { user, logout } = useAuth();
   const location = useLocation();
-  const [badges, setBadges] = useState({ pendingReviews: 0 });
+  const [badges, setBadges] = useState({ pendingReviews: 0, careAttention: 0 });
 
   // Shows how many reviews are waiting for approval next to "Reviews" in the sidebar.
   useEffect(() => {
     const refresh = () =>
       api.getReviews('Pending')
-        .then((d) => setBadges({ pendingReviews: d.counts?.Pending || 0 }))
+        .then((d) => setBadges((b) => ({ ...b, pendingReviews: d.counts?.Pending || 0 })))
         .catch(() => {});
-    refresh();
+    // Client websites/apps that are down or need attention.
+    const refreshCare = () =>
+      api.getCare()
+        .then((d) => setBadges((b) => ({ ...b, careAttention: d.summary?.attention || 0 })))
+        .catch(() => {});
+    refresh(); refreshCare();
     window.addEventListener('reviews-changed', refresh);
-    return () => window.removeEventListener('reviews-changed', refresh);
+    window.addEventListener('care-changed', refreshCare);
+    return () => { window.removeEventListener('reviews-changed', refresh); window.removeEventListener('care-changed', refreshCare); };
   }, [location.pathname]);
 
   return (
@@ -36,7 +43,7 @@ export function Layout() {
           Growth Engine
         </div>
         <nav className="flex-1 px-3 space-y-1">
-          {navItems.map(({ to, label, icon: Icon, end, badgeKey }) => (
+          {navItems.map(({ to, label, icon: Icon, end, badgeKey, alert }) => (
             <NavLink
               key={to}
               to={to}
@@ -50,7 +57,7 @@ export function Layout() {
               <Icon size={18} />
               {label}
               {badgeKey && badges[badgeKey] > 0 && (
-                <span className="ml-auto bg-amber text-navy text-xs font-mono font-semibold rounded-full px-2 py-0.5">
+                <span className={`ml-auto text-xs font-mono font-semibold rounded-full px-2 py-0.5 ${alert ? 'bg-red-600 text-white' : 'bg-amber text-navy'}`}>
                   {badges[badgeKey]}
                 </span>
               )}

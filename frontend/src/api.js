@@ -47,6 +47,11 @@ export const api = {
   updateReview: (id, payload) => request(`/reviews/${id}`, { method: 'PATCH', body: payload }),
   deleteReview: (id) => request(`/reviews/${id}`, { method: 'DELETE' }),
 
+  getCare: () => request('/care'),
+  createCare: (payload) => request('/care', { method: 'POST', body: payload }),
+  updateCare: (id, payload) => request(`/care/${id}`, { method: 'PATCH', body: payload }),
+  deleteCare: (id) => request(`/care/${id}`, { method: 'DELETE' }),
+  runCareChecks: (id) => request('/care/check', { method: 'POST', body: id ? { id } : {} }),
   getSettings: () => request('/settings'),
   saveSettings: (payload) => request('/settings', { method: 'PUT', body: payload }),
   getReviewRequests: () => request('/reviews/requests'),

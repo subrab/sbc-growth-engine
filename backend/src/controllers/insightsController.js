@@ -20,7 +20,7 @@ INSERT INTO analytics_sites (id, name, domain) VALUES ('sbclabs', 'SBC Labs', 'w
 ON CONFLICT (id) DO NOTHING;`;
 
 let ready = null;
-function ensureInsightsTables() {
+export function ensureInsightsTables() {
   if (!ready) {
     ready = query(INSIGHTS_SQL).catch((err) => { ready = null; throw err; });
   }
@@ -99,7 +99,7 @@ async function getSite(id) {
   if (siteCache.has(id)) return siteCache.get(id);
   const { rows } = await query('SELECT id, domain FROM analytics_sites WHERE id = $1', [id]);
   const site = rows[0] || null;
-  siteCache.set(id, site);
+  if (site) siteCache.set(id, site); // unknown ids are not cached: a site added later must start counting
   return site;
 }
 
