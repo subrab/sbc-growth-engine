@@ -57,6 +57,7 @@ export const api = {
   getReviewRequests: () => request('/reviews/requests'),
   reviewRequestSent: (id, channel) => request(`/leads/${id}/review-request/sent`, { method: 'POST', body: { channel } }),
   reviewRequestReviewed: (id) => request(`/leads/${id}/review-request/reviewed`, { method: 'POST', body: {} }),
+  getPhotoVault: (days) => request(`/photovault?days=${days}`),
   getInsights: (site, days) => request(`/insights?site=${encodeURIComponent(site)}&days=${days}`),
 
   // Public, unauthenticated — used by the assessment page, not the admin dashboard.

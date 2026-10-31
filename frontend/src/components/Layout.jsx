@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Kanban, Star, BarChart3, ShieldCheck, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Kanban, Star, BarChart3, ShieldCheck, Download, LogOut } from 'lucide-react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 
@@ -9,6 +9,7 @@ const navItems = [
   { to: '/app/leads', label: 'Leads', icon: Users },
   { to: '/app/pipeline', label: 'Pipeline', icon: Kanban },
   { to: '/app/insights', label: 'Insights', icon: BarChart3 },
+  { to: '/app/photovault', label: 'PhotoVault', icon: Download },
   { to: '/app/reviews', label: 'Reviews', icon: Star, badgeKey: 'pendingReviews' },
   { to: '/app/care', label: 'Client Care', icon: ShieldCheck, badgeKey: 'careAttention', alert: true },
 ];

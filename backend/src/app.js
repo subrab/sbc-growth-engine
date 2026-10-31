@@ -12,6 +12,7 @@ import reviewsRoutes from './routes/reviews.js';
 import insightsRoutes from './routes/insights.js';
 import settingsRoutes from './routes/settings.js';
 import clientCareRoutes from './routes/clientCare.js';
+import photovaultRoutes from './routes/photovault.js';
 import { cronClientCare } from './controllers/clientCareController.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 
@@ -38,6 +39,7 @@ app.use('/api/reviews', reviewsRoutes);
 app.use('/api/insights', insightsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/care', clientCareRoutes);
+app.use('/api/photovault', photovaultRoutes);
 app.get('/api/cron/client-care', cronClientCare);
 app.use('/api/public', publicRoutes);
 
